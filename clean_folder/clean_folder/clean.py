@@ -75,45 +75,48 @@ def main():
     try:
         path_dir = sys.argv[1]
     except IndexError:
-        print("No param, pass the path to sort folder")
+        return f"No folder, pass the path to sort folder"
+    if path_dir:
+        path_to_file = path_dir
+        norm_names_list = []
+        all_suffix_names = []
+        count_files = 0
+        for root, dirs, files in os.walk(path_dir):
 
-    path_to_file = path_dir
-    norm_names_list = []
-    all_suffix_names = []
-    count_files = 0
-    for root, dirs, files in os.walk(path_dir):
+            for file in files:
+                suffix_name = file[file.rfind("."):]
+                if suffix_name not in all_suffix_names:
+                    all_suffix_names.append(suffix_name)
 
-        for file in files:
-            suffix_name = file[file.rfind("."):]
-            if suffix_name not in all_suffix_names:
-                all_suffix_names.append(suffix_name)
+                os.replace(Path(root) / file, Path(path_to_file, file))
+                norm_name = normalize(file[:file.rfind(".")]) + file[file.rfind("."):]
+                os.replace(Path(path_to_file, file), Path(path_to_file, norm_name))
 
-            os.replace(Path(root) / file, Path(path_to_file, file))
-            norm_name = normalize(file[:file.rfind(".")]) + file[file.rfind("."):]
-            os.replace(Path(path_to_file, file), Path(path_to_file, norm_name))
+                if norm_name not in norm_names_list:
+                    norm_names_list.append(norm_name)
+                    count_files += 1
 
-            if norm_name not in norm_names_list:
-                norm_names_list.append(norm_name)
-                count_files += 1
+        dict_files = sorting_files(norm_names_list)
+        list_new_folders = []
 
-    dict_files = sorting_files(norm_names_list)
-    list_new_folders = []
+        for file_types, files in dict_files.items():
+            list_new_folders.append(file_types)
 
-    for file_types, files in dict_files.items():
-        list_new_folders.append(file_types)
+            for file in files:
+                if not Path(path_to_file, file_types).exists():
+                    Path(path_to_file, file_types).mkdir()
+                if not Path(path_to_file, file_types, file_types).exists():
+                    Path(path_to_file, file_types, file_types).mkdir()
+                if file_types == "archives":
+                    shutil.unpack_archive(Path(path_to_file, file), Path(path_to_file, file_types, file_types, file))
+                    os.replace(Path(path_to_file, file), Path(path_to_file, file_types, file))
+                else:
+                    os.replace(Path(path_to_file, file), Path(path_to_file, file_types, file))
 
-        for file in files:
-            if not Path(path_to_file, file_types).exists():
-                Path(path_to_file, file_types).mkdir()
-            if not Path(path_to_file, file_types, file_types).exists():
-                Path(path_to_file, file_types, file_types).mkdir()
-            if file_types == "archives":
-                shutil.unpack_archive(Path(path_to_file, file), Path(path_to_file, file_types, file_types, file))
-                os.replace(Path(path_to_file, file), Path(path_to_file, file_types, file))
-            else:
-                os.replace(Path(path_to_file, file), Path(path_to_file, file_types, file))
+        delete_folders(path_to_file)
+    else:
+        return f"Your folder Your folder does not exist"
 
-    delete_folders(path_to_file)
 
     print("All folders: ", list_new_folders)
     print("All extension files: ", all_suffix_names)
